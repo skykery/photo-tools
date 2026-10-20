@@ -23,7 +23,7 @@ echo "PHOTOS_DIR=/mnt/photos/DSLR" > .env
 docker compose up -d --build
 ```
 
-Open http://<server>:5000. Settings and upload state are stored in `./data`.
+Open `http://<server>:5000`. Settings and upload state are stored in `./data`.
 
 Photos are mounted at the same path inside the container as on the host, so Album Builder symlinks also work outside the container. Converted DNGs are written as root.
 
