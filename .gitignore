@@ -1,0 +1,14 @@
+config.json
+lightroom_uploaded.json
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+data/
+.env
+.DS_Store
+.claude/settings.local.json

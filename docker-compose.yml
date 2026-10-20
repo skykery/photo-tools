@@ -1,0 +1,22 @@
+# Setup on the home server:
+#   1. Build the converter base image (one time, ~5.6 GB):
+#        docker build -t adobe-dng-converter:16.5 https://github.com/skykery/headless-adobe-dng-docker-image.git
+#   2. Create .env next to this file with the photos path on the server, e.g.
+#        PHOTOS_DIR=/mnt/photos/DSLR
+#   3. docker compose up -d --build
+#
+# Photos are mounted at the SAME path inside the container as on the host, so
+# symlinks made by Album Builder resolve on the host and over network shares.
+services:
+  photo-tools:
+    build: .
+    image: photo-tools:latest
+    container_name: photo-tools
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      BASE_DIR: ${PHOTOS_DIR:?set PHOTOS_DIR in .env}
+    volumes:
+      - ${PHOTOS_DIR}:${PHOTOS_DIR}
+      - ./data:/data

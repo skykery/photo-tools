@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAW Cleaner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+
+        .config-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .config-section input {
+            flex: 1;
+            min-width: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .config-section input:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 4px rgba(0, 102, 204, 0.3);
+        }
+
+        .btn-save-config, .btn-browse {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .btn-browse {
+            background: #0066cc;
+        }
+
+        .btn-save-config:hover {
+            background: #218838;
+        }
+
+        .btn-browse:hover {
+            background: #0052a3;
+        }
+
+        .config-feedback {
+            font-size: 12px;
+            color: #28a745;
+            min-height: 20px;
+            margin-top: 5px;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal.open {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .modal-path {
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            margin-bottom: 15px;
+            word-break: break-all;
+            color: #666;
+        }
+
+        .directory-list {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .directory-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .directory-item:hover {
+            background: #f0f0f0;
+        }
+
+        .directory-item:last-child {
+            border-bottom: none;
+        }
+
+        .directory-item.parent {
+            color: #0066cc;
+            font-weight: 500;
+        }
+
+        .directory-item.parent::before {
+            content: "⬆️ ";
+        }
+
+        .directory-item.folder::before {
+            content: "📁 ";
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-modal {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-modal-cancel {
+            background: #ddd;
+            color: #333;
+        }
+
+        .btn-modal-cancel:hover {
+            background: #ccc;
+        }
+
+        .btn-modal-select {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-modal-select:hover {
+            background: #218838;
+        }
+
+        .btn-modal-select:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            background: #0066cc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052a3;
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-success:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+
+        .candidates-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .candidate-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 16px;
+            background: white;
+            transition: background 0.2s, opacity 0.2s;
+        }
+
+        .candidate-card.queued {
+            background: #f0f0f0;
+            opacity: 0.7;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 10px;
+        }
+
+        .card-path {
+            flex: 1;
+            word-break: break-all;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-raw {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .badge-dng {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .badge-status {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-status.pending {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        .badge-status.running {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-status.done {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .card-files {
+            margin: 12px 0;
+            padding: 8px 0;
+        }
+
+        .files-toggle {
+            background: none;
+            border: none;
+            color: #0066cc;
+            cursor: pointer;
+            padding: 0;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .files-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .files-list {
+            display: none;
+            list-style: none;
+            background: #f9f9f9;
+            border-left: 3px solid #0066cc;
+            padding: 8px 12px;
+            margin-left: 0;
+            font-size: 12px;
+            color: #666;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .files-list.open {
+            display: block;
+        }
+
+        .files-list li {
+            padding: 3px 0;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: #999;
+            padding: 6px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" style="color: #0066cc; text-decoration: none; font-size: 13px;">&larr; Back to Tools</a>
+            <h1 style="margin-top: 8px;">RAW Cleaner</h1>
+
+            <div class="config-section">
+                <input type="text" id="baseDirInput" placeholder="Path to scan" />
+                <button class="btn-browse" id="browseBtn">Browse</button>
+                <button class="btn-save-config" id="saveConfigBtn">Save</button>
+                <div class="config-feedback" id="configFeedback"></div>
+            </div>
+
+            <div class="controls">
+                <button class="btn-primary" id="scanBtn">Scan</button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div id="emptyState" class="empty-state">
+                <p>Click "Scan" to find folders</p>
+            </div>
+
+            <!-- To Convert Section -->
+            <div class="section" id="convertSection" style="display: none;">
+                <div class="section-title">
+                    To Convert
+                    <button class="btn-success" id="convertAllBtn" disabled>Convert All</button>
+                </div>
+                <div id="convertList" class="candidates-list"></div>
+            </div>
+
+            <!-- To Clean Section -->
+            <div class="section" id="cleanSection" style="display: none;">
+                <div class="section-title">
+                    To Clean
+                    <button class="btn-success" id="cleanAllBtn" disabled>Approve All</button>
+                </div>
+                <div id="cleanList" class="candidates-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Browse Modal -->
+    <div class="modal" id="browseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Browse Directories</h2>
+                <button class="modal-close" id="closeModal">&times;</button>
+            </div>
+            <div class="modal-path" id="currentBrowsePath">/Volumes</div>
+            <div class="directory-list" id="directoryList"></div>
+            <div class="modal-actions">
+                <button class="btn-modal btn-modal-cancel" id="cancelBrowse">Cancel</button>
+                <button class="btn-modal btn-modal-select" id="selectPath" disabled>Use This Path</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let convertCandidates = [];
+        let cleanCandidates = [];
+        let jobMap = new Map(); // job_id -> { type, index }
+        let convertJobMap = new Map(); // job_id -> candidate index
+        let currentBrowsePath = "/Volumes";
+
+        // Browse modal functions
+        async function browsePath(path) {
+            try {
+                const response = await fetch('/tools/raw-cleaner/api/browse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert('Error browsing: ' + error.error);
+                    return;
+                }
+
+                const data = await response.json();
+                currentBrowsePath = data.current_path;
+                document.getElementById('currentBrowsePath').textContent = currentBrowsePath;
+
+                const list = document.getElementById('directoryList');
+                list.innerHTML = '';
+
+                // Add parent directory option if not at root
+                if (data.parent_path && data.parent_path !== currentBrowsePath) {
+                    const parentItem = document.createElement('div');
+                    parentItem.className = 'directory-item parent';
+                    parentItem.textContent = 'Parent Directory';
+                    parentItem.addEventListener('click', () => browsePath(data.parent_path));
+                    list.appendChild(parentItem);
+                }
+
+                // Add subdirectories
+                if (data.entries.length === 0) {
+                    const emptyItem = document.createElement('div');
+                    emptyItem.className = 'directory-item';
+                    emptyItem.textContent = 'No subdirectories';
+                    emptyItem.style.color = '#999';
+                    list.appendChild(emptyItem);
+                } else {
+                    data.entries.forEach(entry => {
+                        const item = document.createElement('div');
+                        item.className = 'directory-item folder';
+                        item.textContent = entry.name;
+                        item.addEventListener('click', () => browsePath(entry.path));
+                        list.appendChild(item);
+                    });
+                }
+
+                document.getElementById('selectPath').disabled = false;
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function openBrowseModal() {
+            document.getElementById('browseModal').classList.add('open');
+            browsePath(currentBrowsePath);
+        }
+
+        function closeBrowseModal() {
+            document.getElementById('browseModal').classList.remove('open');
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/tools/raw-cleaner/api/config');
+                const data = await response.json();
+                document.getElementById('baseDirInput').value = data.base_dir;
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+
+        async function saveConfig() {
+            const baseDirInput = document.getElementById('baseDirInput');
+            const path = baseDirInput.value.trim();
+
+            if (!path) {
+                showConfigFeedback('Path is required', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/tools/raw-cleaner/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ base_dir: path })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    showConfigFeedback(error.error || 'Failed to save config', 'error');
+                    return;
+                }
+
+                const data = await response.json();
+                baseDirInput.value = data.base_dir;
+                showConfigFeedback('✓ Saved', 'success');
+            } catch (error) {
+                showConfigFeedback('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showConfigFeedback(message, type) {
+            const feedback = document.getElementById('configFeedback');
+            feedback.textContent = message;
+            feedback.style.color = type === 'error' ? '#dc3545' : '#28a745';
+            setTimeout(() => {
+                feedback.textContent = '';
+            }, 2000);
+        }
+
+        async function scan() {
+            document.getElementById('scanBtn').disabled = true;
+            try {
+                const [convertRes, cleanRes] = await Promise.all([
+                    fetch('/tools/raw-cleaner/api/scan/unconverted'),
+                    fetch('/tools/raw-cleaner/api/scan')
+                ]);
+
+                if (!convertRes.ok || !cleanRes.ok) {
+                    const errBody = await (convertRes.ok ? cleanRes : convertRes).json();
+                    convertCandidates = [];
+                    cleanCandidates = [];
+                    renderCandidates(errBody.error || 'Scan failed');
+                    return;
+                }
+
+                convertCandidates = await convertRes.json();
+                cleanCandidates = await cleanRes.json();
+
+                renderCandidates();
+                pollJobs();
+            } catch (error) {
+                renderCandidates('Error scanning: ' + error.message);
+            } finally {
+                document.getElementById('scanBtn').disabled = false;
+            }
+        }
+
+        function renderCandidates(errorMessage) {
+            const hasConvert = convertCandidates.length > 0;
+            const hasClean = cleanCandidates.length > 0;
+
+            const emptyEl = document.getElementById('emptyState');
+            emptyEl.style.display = hasConvert || hasClean ? 'none' : 'block';
+            if (errorMessage) {
+                emptyEl.innerHTML = `<p style="color:#dc3545;">${errorMessage}</p>`;
+            } else if (!hasConvert && !hasClean) {
+                emptyEl.innerHTML = '<p>No folders found. Check the base directory and click "Scan".</p>';
+            }
+            document.getElementById('convertSection').style.display = hasConvert ? 'block' : 'none';
+            document.getElementById('cleanSection').style.display = hasClean ? 'block' : 'none';
+
+            if (hasConvert) {
+                renderSection('convertList', convertCandidates, 'convert');
+                attachConvertListeners();
+            }
+
+            if (hasClean) {
+                renderSection('cleanList', cleanCandidates, 'clean');
+                attachCleanListeners();
+            }
+
+            document.getElementById('convertAllBtn').disabled = !hasConvert;
+            document.getElementById('cleanAllBtn').disabled = !hasClean;
+        }
+
+        function renderSection(containerId, candidates, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = candidates.map((candidate, idx) => {
+                const cardId = `${type}-card-${idx}`;
+                const rawCount = candidate.raw_count || 0;
+                const dngCount = candidate.dng_count || 0;
+                return `
+                    <div class="candidate-card" id="${cardId}">
+                        <div class="card-header">
+                            <div>
+                                <div class="card-path" title="${candidate.path}">${candidate.path}</div>
+                                <div class="card-badges" style="margin-top: 8px;">
+                                    <span class="badge badge-raw">${rawCount} .orf/.nef</span>
+                                    ${dngCount > 0 ? `<span class="badge badge-dng">${dngCount} .dng</span>` : ''}
+                                    <span class="badge badge-status" id="${type}-status-${idx}"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-files">
+                            <button class="files-toggle" data-type="${type}" data-idx="${idx}">
+                                Show ${candidate.raw_files.length} file(s)
+                            </button>
+                            <ul class="files-list" id="${type}-files-${idx}">
+                                ${candidate.raw_files.map(f => `<li>${f}</li>`).join('')}
+                            </ul>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="btn-${type === 'convert' ? 'success' : 'success'}" id="${type}-approve-${idx}" data-type="${type}" data-idx="${idx}">
+                                ${type === 'convert' ? 'Convert' : 'Approve'}
+                            </button>
+                            <button class="btn-danger" id="${type}-cancel-${idx}" data-type="${type}" data-idx="${idx}" style="display: none;">Cancel</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function attachConvertListeners() {
+            document.querySelectorAll('[data-type="convert"]').forEach(elem => {
+                if (elem.classList.contains('files-toggle')) {
+                    elem.addEventListener('click', (e) => {
+                        const idx = e.target.dataset.idx;
+                        const filesList = document.getElementById(`convert-files-${idx}`);
+                        filesList.classList.toggle('open');
+                    });
+                }
+                if (elem.id.startsWith('convert-approve-')) {
+                    elem.addEventListener('click', (e) => {
+                        const idx = e.target.dataset.idx;
+                        convertCandidate(idx);
+                    });
+                }
+                if (elem.id.startsWith('convert-cancel-')) {
+                    elem.addEventListener('click', (e) => {
+                        const idx = e.target.dataset.idx;
+                        cancelJob('convert', idx);
+                    });
+                }
+            });
+        }
+
+        function attachCleanListeners() {
+            document.querySelectorAll('[data-type="clean"]').forEach(elem => {
+                if (elem.classList.contains('files-toggle')) {
+                    elem.addEventListener('click', (e) => {
+                        const idx = e.target.dataset.idx;
+                        const filesList = document.getElementById(`clean-files-${idx}`);
+                        filesList.classList.toggle('open');
+                    });
+                }
+                if (elem.id.startsWith('clean-approve-')) {
+                    elem.addEventListener('click', (e) => {
+                        const idx = e.target.dataset.idx;
+                        approveCandidate(idx);
+                    });
+                }
+                if (elem.id.startsWith('clean-cancel-')) {
+                    elem.addEventListener('click', (e) => {
+                        const idx = e.target.dataset.idx;
+                        cancelJob('clean', idx);
+                    });
+                }
+            });
+        }
+
+        async function convertCandidate(idx) {
+            const candidate = convertCandidates[idx];
+            try {
+                const response = await fetch('/tools/raw-cleaner/api/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: candidate.path })
+                });
+                const data = await response.json();
+                if (data.job_id) {
+                    convertJobMap.set(data.job_id, idx);
+                    updateCardStatus('convert', idx, 'pending');
+                    document.getElementById(`convert-approve-${idx}`).disabled = true;
+                    document.getElementById(`convert-cancel-${idx}`).style.display = 'inline-block';
+                    pollJobs();
+                }
+            } catch (error) {
+                alert('Error queuing conversion: ' + error.message);
+            }
+        }
+
+        async function approveCandidate(idx) {
+            const candidate = cleanCandidates[idx];
+            try {
+                const response = await fetch('/tools/raw-cleaner/api/queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: candidate.path, type: 'delete' })
+                });
+                const data = await response.json();
+                if (data.job_id) {
+                    jobMap.set(data.job_id, { type: 'clean', index: idx });
+                    updateCardStatus('clean', idx, 'pending');
+                    document.getElementById(`clean-approve-${idx}`).disabled = true;
+                    document.getElementById(`clean-cancel-${idx}`).style.display = 'inline-block';
+                    pollJobs();
+                }
+            } catch (error) {
+                alert('Error queuing job: ' + error.message);
+            }
+        }
+
+        async function cancelJob(type, idx) {
+            let jobId = null;
+
+            if (type === 'convert') {
+                for (const [id, candIdx] of convertJobMap.entries()) {
+                    if (candIdx === idx) {
+                        jobId = id;
+                        break;
+                    }
+                }
+            } else {
+                for (const [id, data] of jobMap.entries()) {
+                    if (data.type === 'clean' && data.index === idx) {
+                        jobId = id;
+                        break;
+                    }
+                }
+            }
+
+            if (!jobId) return;
+
+            try {
+                const response = await fetch(`/tools/raw-cleaner/api/queue/${jobId}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    if (type === 'convert') {
+                        convertJobMap.delete(jobId);
+                    } else {
+                        jobMap.delete(jobId);
+                    }
+                    updateCardStatus(type, idx, null);
+                    document.getElementById(`${type}-approve-${idx}`).disabled = false;
+                    document.getElementById(`${type}-cancel-${idx}`).style.display = 'none';
+                }
+            } catch (error) {
+                alert('Error cancelling job: ' + error.message);
+            }
+        }
+
+        async function pollJobs() {
+            try {
+                const response = await fetch('/tools/raw-cleaner/api/jobs');
+                const jobs = await response.json();
+
+                jobs.forEach(job => {
+                    // Check if it's a convert job
+                    const convertIdx = convertJobMap.get(job.id);
+                    if (convertIdx !== undefined) {
+                        updateCardStatus('convert', convertIdx, job.status);
+                        if (job.status === 'done' || job.status === 'error') {
+                            document.getElementById(`convert-approve-${convertIdx}`).disabled = true;
+                            document.getElementById(`convert-cancel-${convertIdx}`).style.display = 'none';
+                        }
+                        return;
+                    }
+
+                    // Check if it's a clean job
+                    const cleanData = jobMap.get(job.id);
+                    if (cleanData && cleanData.type === 'clean') {
+                        updateCardStatus('clean', cleanData.index, job.status);
+                        if (job.status === 'done' || job.status === 'error') {
+                            document.getElementById(`clean-approve-${cleanData.index}`).disabled = true;
+                            document.getElementById(`clean-cancel-${cleanData.index}`).style.display = 'none';
+                        }
+                    }
+                });
+
+                // Keep polling if there are pending/running jobs
+                if (jobs.some(j => j.status === 'pending' || j.status === 'running')) {
+                    setTimeout(pollJobs, 2000);
+                }
+            } catch (error) {
+                console.error('Error polling jobs:', error);
+            }
+        }
+
+        function updateCardStatus(type, idx, status) {
+            const badge = document.getElementById(`${type}-status-${idx}`);
+            const card = document.getElementById(`${type}-card-${idx}`);
+
+            if (!status) {
+                badge.textContent = '';
+                badge.className = 'badge badge-status';
+                card.classList.remove('queued');
+                return;
+            }
+
+            const statusTexts = {
+                'pending': type === 'convert' ? 'Converting...' : 'Deleting...',
+                'running': type === 'convert' ? 'Converting...' : 'Deleting...',
+                'done': type === 'convert' ? 'Converted' : 'Deleted',
+                'error': 'Error'
+            };
+
+            badge.textContent = statusTexts[status] || status;
+            badge.className = `badge badge-status ${status}`;
+
+            if (status === 'pending' || status === 'running') {
+                card.classList.add('queued');
+            } else if (status === 'done') {
+                card.classList.add('queued');
+            }
+
+            if (status === 'running') {
+                badge.innerHTML = '<span class="loading-spinner"></span>' + statusTexts[status];
+            }
+        }
+
+        // Event listeners
+        document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
+        document.getElementById('browseBtn').addEventListener('click', openBrowseModal);
+        document.getElementById('closeModal').addEventListener('click', closeBrowseModal);
+        document.getElementById('cancelBrowse').addEventListener('click', closeBrowseModal);
+        document.getElementById('selectPath').addEventListener('click', () => {
+            document.getElementById('baseDirInput').value = currentBrowsePath;
+            closeBrowseModal();
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('browseModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('browseModal')) {
+                closeBrowseModal();
+            }
+        });
+
+        document.getElementById('scanBtn').addEventListener('click', scan);
+
+        document.getElementById('convertAllBtn').addEventListener('click', async () => {
+            const unapproved = convertCandidates
+                .map((c, idx) => idx)
+                .filter(idx => !Array.from(convertJobMap.values()).includes(idx));
+
+            for (const idx of unapproved) {
+                await convertCandidate(idx);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        });
+
+        document.getElementById('cleanAllBtn').addEventListener('click', async () => {
+            const unapproved = cleanCandidates
+                .map((c, idx) => idx)
+                .filter(idx => !Array.from(jobMap.values()).some(d => d.type === 'clean' && d.index === idx));
+
+            for (const idx of unapproved) {
+                await approveCandidate(idx);
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        });
+
+        // Load config on page load
+        loadConfig();
+    </script>
+</body>
+</html>

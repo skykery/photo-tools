@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album Builder</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        header, .content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; font-size: 28px; margin-bottom: 15px; }
+        h2 { font-size: 18px; color: #333; margin-bottom: 12px; }
+        .back-link { color: #0066cc; text-decoration: none; font-size: 13px; }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .form-row label { min-width: 140px; font-size: 14px; color: #555; }
+        .form-row input {
+            flex: 1;
+            min-width: 260px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        .form-row input:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 4px rgba(0, 102, 204, 0.3);
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .btn-primary { background: #0066cc; color: white; }
+        .btn-primary:hover { background: #0052a3; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #eee;
+            color: #333;
+        }
+        .btn-small:hover { background: #ddd; }
+        .feedback { font-size: 13px; min-height: 20px; margin-top: 8px; }
+        .feedback.success { color: #28a745; }
+        .feedback.error { color: #dc3545; }
+
+        .breadcrumb-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .breadcrumb {
+            flex: 1;
+            font-size: 13px;
+            color: #555;
+            word-break: break-all;
+            min-width: 0;
+        }
+        .breadcrumb a {
+            color: #0066cc;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .breadcrumb a:hover { text-decoration: underline; }
+        .breadcrumb .sep { color: #999; margin: 0 4px; }
+
+        .btn-add-current {
+            flex: 0 0 auto;
+            padding: 6px 12px;
+            font-size: 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .btn-add-current:hover { background: #218838; }
+        .btn-add-current.is-selected {
+            background: #e7f1ff;
+            color: #084298;
+            cursor: default;
+        }
+        .btn-add-current.is-hidden { display: none; }
+
+        .btn-refresh {
+            flex: 0 0 auto;
+            padding: 6px 10px;
+            font-size: 14px;
+            line-height: 1;
+            background: #eee;
+            color: #333;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-refresh:hover { background: #ddd; }
+        .btn-refresh:disabled { color: #999; cursor: progress; }
+        .cache-hint {
+            font-size: 11px;
+            color: #888;
+            margin-left: 4px;
+        }
+
+        .tree {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .tree-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid #f4f4f4;
+            font-size: 14px;
+        }
+        .tree-row:last-child { border-bottom: none; }
+        .tree-row .name {
+            flex: 1;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            color: #333;
+            word-break: break-all;
+        }
+        .tree-row .open-link {
+            color: #0066cc;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .tree-row .open-link:hover { text-decoration: underline; }
+        .tree-empty {
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+        .tree-error {
+            padding: 12px;
+            background: #fdf2f2;
+            color: #c0392b;
+            font-size: 13px;
+        }
+
+        .preview-strip {
+            display: none;
+            margin-bottom: 10px;
+            padding: 8px 10px;
+            background: #fafbfc;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            max-height: 88px;
+            overflow-y: auto;
+        }
+        .preview-strip.has-files { display: block; }
+        .preview-strip .label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .preview-pill {
+            display: inline-block;
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 3px 8px;
+            margin: 0 4px 4px 0;
+            border-radius: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 11px;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .preview-pill:hover {
+            background: #e7f1ff;
+            border-color: #0066cc;
+        }
+
+        .selected-panel {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            min-height: 50px;
+        }
+        .selected-panel .empty {
+            color: #999;
+            font-size: 13px;
+            text-align: center;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e7f1ff;
+            color: #084298;
+            padding: 4px 10px;
+            margin: 4px 4px 0 0;
+            border-radius: 14px;
+            font-size: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        .chip button {
+            all: unset;
+            cursor: pointer;
+            color: #084298;
+            font-weight: 700;
+            padding: 0 2px;
+        }
+        .chip button:hover { color: #c0392b; }
+
+        .result {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f0fdf4;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #155724;
+            word-break: break-all;
+        }
+        .result.error {
+            background: #fdf2f2;
+            color: #721c24;
+        }
+        .result table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+            font-size: 12px;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        .result td { padding: 4px 8px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="back-link">&larr; Back to Tools</a>
+            <h1 style="margin-top: 8px;">Album Builder</h1>
+            <div style="font-size: 13px; color: #666;">
+                Group existing photo folders into a new album folder of symlinks. Originals stay where they are.
+            </div>
+        </header>
+
+        <div class="content">
+            <h2>Album</h2>
+            <div class="form-row">
+                <label for="albumDir">Destination folder</label>
+                <input type="text" id="albumDir" value="/Volumes/Poze/Albums" placeholder="/Volumes/Poze/Albums" />
+            </div>
+            <div class="form-row">
+                <label for="albumName">Album name</label>
+                <input type="text" id="albumName" placeholder="Best of 2024" />
+            </div>
+        </div>
+
+        <div class="content">
+            <h2>Source folders</h2>
+            <div class="breadcrumb-row">
+                <div class="breadcrumb" id="breadcrumb"></div>
+                <button class="btn-refresh" id="refreshBtn" title="Re-scan this folder">↻</button>
+                <button class="btn-add-current is-hidden" id="addCurrentBtn">+ Add this folder</button>
+            </div>
+            <div class="preview-strip" id="previewFiles"></div>
+            <div class="tree" id="tree">
+                <div class="tree-empty">Loading…</div>
+            </div>
+
+            <div class="selected-panel" id="selectedPanel">
+                <div class="empty">No source folders selected yet.</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <button class="btn-primary" id="createBtn" disabled>Create album</button>
+            <div class="feedback" id="feedback"></div>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG_URL = '/tools/album-builder/api/config';
+        const BROWSE_URL = '/tools/album-builder/api/browse';
+        const CREATE_URL = '/tools/album-builder/api/create';
+        const FILE_URL = '/tools/album-builder/api/file';
+
+        let baseDir = '';
+        let currentPath = '';
+        let selected = new Map(); // path -> name
+        let browseCache = new Map(); // path -> browse JSON response
+
+        const albumDirEl = document.getElementById('albumDir');
+        const albumNameEl = document.getElementById('albumName');
+        const createBtn = document.getElementById('createBtn');
+        const feedbackEl = document.getElementById('feedback');
+        const resultEl = document.getElementById('result');
+        const treeEl = document.getElementById('tree');
+        const breadcrumbEl = document.getElementById('breadcrumb');
+        const selectedPanelEl = document.getElementById('selectedPanel');
+        const addCurrentBtn = document.getElementById('addCurrentBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        function updateCreateButton() {
+            createBtn.disabled = !(
+                albumDirEl.value.trim() &&
+                albumNameEl.value.trim() &&
+                selected.size > 0
+            );
+        }
+
+        albumDirEl.addEventListener('input', updateCreateButton);
+        albumNameEl.addEventListener('input', updateCreateButton);
+
+        async function loadConfig() {
+            try {
+                const r = await fetch(CONFIG_URL);
+                const data = await r.json();
+                baseDir = data.base_dir || '';
+                await browse(baseDir);
+            } catch (e) {
+                showTreeError('Failed to load config: ' + e.message);
+            }
+        }
+
+        async function browse(path, forceRefresh = false) {
+            if (!forceRefresh && browseCache.has(path)) {
+                applyBrowseData(browseCache.get(path), true);
+                return;
+            }
+            refreshBtn.disabled = true;
+            try {
+                const r = await fetch(BROWSE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path }),
+                });
+                const data = await r.json();
+                if (!r.ok) {
+                    showTreeError(data.error || 'Browse failed');
+                    // Don't cache errors; allow retry on next nav.
+                    browseCache.delete(path);
+                    return;
+                }
+                browseCache.set(data.current_path, data);
+                applyBrowseData(data, false);
+            } catch (e) {
+                showTreeError('Browse error: ' + e.message);
+            } finally {
+                refreshBtn.disabled = false;
+            }
+        }
+
+        function applyBrowseData(data, fromCache) {
+            currentPath = data.current_path;
+            renderBreadcrumb(currentPath, fromCache);
+            renderAddCurrentButton();
+            renderPreviewFiles(data.preview_files || []);
+            renderTree(data.entries);
+        }
+
+        function showTreeError(msg) {
+            treeEl.innerHTML = `<div class="tree-error">${escapeHtml(msg)}</div>`;
+            renderPreviewFiles([]);
+        }
+
+        function renderAddCurrentButton() {
+            if (!currentPath || currentPath === baseDir) {
+                addCurrentBtn.classList.add('is-hidden');
+                return;
+            }
+            addCurrentBtn.classList.remove('is-hidden');
+            if (selected.has(currentPath)) {
+                addCurrentBtn.classList.add('is-selected');
+                addCurrentBtn.textContent = '✓ Already in album';
+                addCurrentBtn.disabled = true;
+            } else {
+                addCurrentBtn.classList.remove('is-selected');
+                addCurrentBtn.textContent = '+ Add this folder';
+                addCurrentBtn.disabled = false;
+            }
+        }
+
+        function renderPreviewFiles(files) {
+            const el = document.getElementById('previewFiles');
+            if (!files.length) {
+                el.classList.remove('has-files');
+                el.innerHTML = '';
+                return;
+            }
+            const pills = files.map(f => `
+                <a class="preview-pill" target="_blank" rel="noopener"
+                   href="${FILE_URL}?path=${encodeURIComponent(f.path)}"
+                   title="${escapeAttr(f.path)}">${escapeHtml(f.name)}</a>
+            `).join('');
+            el.innerHTML = `<div class="label">Files in this folder (${files.length}) — click to preview</div>${pills}`;
+            el.classList.add('has-files');
+        }
+
+        function renderBreadcrumb(path, fromCache) {
+            if (!baseDir) {
+                breadcrumbEl.textContent = path;
+                return;
+            }
+            // Build clickable breadcrumb only down to baseDir; above that, plain text.
+            const parts = [];
+            if (path === baseDir) {
+                parts.push(`<a data-path="${escapeAttr(baseDir)}">${escapeHtml(baseDir)}</a>`);
+            } else if (path.startsWith(baseDir + '/') || path === baseDir) {
+                const rel = path.slice(baseDir.length + 1);
+                const segments = rel.split('/');
+                parts.push(`<a data-path="${escapeAttr(baseDir)}">${escapeHtml(baseDir)}</a>`);
+                let acc = baseDir;
+                for (let i = 0; i < segments.length; i++) {
+                    acc = acc + '/' + segments[i];
+                    if (i === segments.length - 1) {
+                        parts.push(`<span>${escapeHtml(segments[i])}</span>`);
+                    } else {
+                        parts.push(`<a data-path="${escapeAttr(acc)}">${escapeHtml(segments[i])}</a>`);
+                    }
+                }
+            } else {
+                parts.push(`<span>${escapeHtml(path)}</span>`);
+                parts.push(`<a data-path="${escapeAttr(baseDir)}">↩ back to base</a>`);
+            }
+            const trail = parts.join('<span class="sep">/</span>');
+            const hint = fromCache ? '<span class="cache-hint">(cached)</span>' : '';
+            breadcrumbEl.innerHTML = trail + hint;
+            breadcrumbEl.querySelectorAll('a').forEach(a => {
+                a.addEventListener('click', () => browse(a.dataset.path));
+            });
+        }
+
+        function renderTree(entries) {
+            if (!entries.length) {
+                treeEl.innerHTML = '<div class="tree-empty">No subfolders here.</div>';
+                return;
+            }
+            treeEl.innerHTML = entries.map(e => `
+                <div class="tree-row">
+                    <input type="checkbox" data-path="${escapeAttr(e.path)}"
+                        ${selected.has(e.path) ? 'checked' : ''} />
+                    <span class="name">${escapeHtml(e.name)}</span>
+                    <a class="open-link" data-path="${escapeAttr(e.path)}">↳ open</a>
+                </div>
+            `).join('');
+            treeEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const p = cb.dataset.path;
+                    if (cb.checked) {
+                        selected.set(p, basenameOf(p));
+                    } else {
+                        selected.delete(p);
+                    }
+                    renderSelected();
+                    renderAddCurrentButton();
+                    updateCreateButton();
+                });
+            });
+            treeEl.querySelectorAll('.open-link').forEach(link => {
+                link.addEventListener('click', () => browse(link.dataset.path));
+            });
+        }
+
+        function renderSelected() {
+            if (selected.size === 0) {
+                selectedPanelEl.innerHTML = '<div class="empty">No source folders selected yet.</div>';
+                return;
+            }
+            const chips = [];
+            for (const [path, name] of selected) {
+                chips.push(`
+                    <span class="chip">
+                        ${escapeHtml(name)}
+                        <button data-path="${escapeAttr(path)}" title="Remove">×</button>
+                    </span>
+                `);
+            }
+            selectedPanelEl.innerHTML = chips.join('');
+            selectedPanelEl.querySelectorAll('button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selected.delete(btn.dataset.path);
+                    renderSelected();
+                    renderAddCurrentButton();
+                    updateCreateButton();
+                    // Refresh the tree to uncheck the box if it's visible.
+                    const cb = treeEl.querySelector(`input[data-path="${cssEscape(btn.dataset.path)}"]`);
+                    if (cb) cb.checked = false;
+                });
+            });
+        }
+
+        async function createAlbum() {
+            createBtn.disabled = true;
+            feedbackEl.textContent = '';
+            resultEl.innerHTML = '';
+            try {
+                const r = await fetch(CREATE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        album_dir: albumDirEl.value.trim(),
+                        album_name: albumNameEl.value.trim(),
+                        sources: Array.from(selected.keys()),
+                    }),
+                });
+                const data = await r.json();
+                if (!r.ok) {
+                    resultEl.innerHTML = `<div class="result error">${escapeHtml(data.error || 'Create failed')}</div>`;
+                    return;
+                }
+                const rows = data.links.map(l => `
+                    <tr>
+                        <td>${escapeHtml(l.name)}</td>
+                        <td>→</td>
+                        <td>${escapeHtml(l.source)}</td>
+                    </tr>
+                `).join('');
+                resultEl.innerHTML = `
+                    <div class="result">
+                        <div><strong>Album created:</strong> ${escapeHtml(data.album_path)}</div>
+                        <div>${data.links.length} symlink(s) created.</div>
+                        <table>${rows}</table>
+                    </div>
+                `;
+                // Reset selection and name; keep destination for convenience.
+                selected.clear();
+                albumNameEl.value = '';
+                renderSelected();
+                // Invalidate cache for the current view in case the album landed
+                // inside BASE_DIR — that folder now has a new child.
+                browseCache.delete(currentPath);
+                browse(currentPath, true); // re-scan and uncheck boxes
+            } catch (e) {
+                resultEl.innerHTML = `<div class="result error">Error: ${escapeHtml(e.message)}</div>`;
+            } finally {
+                updateCreateButton();
+            }
+        }
+
+        createBtn.addEventListener('click', createAlbum);
+        refreshBtn.addEventListener('click', () => {
+            if (!currentPath) return;
+            browseCache.delete(currentPath);
+            browse(currentPath, true);
+        });
+        addCurrentBtn.addEventListener('click', () => {
+            if (!currentPath || currentPath === baseDir || selected.has(currentPath)) return;
+            selected.set(currentPath, basenameOf(currentPath));
+            renderSelected();
+            renderAddCurrentButton();
+            updateCreateButton();
+        });
+
+        function basenameOf(p) {
+            const parts = p.replace(/\/+$/, '').split('/');
+            return parts[parts.length - 1] || p;
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+        function escapeAttr(s) { return escapeHtml(s); }
+        function cssEscape(s) {
+            if (window.CSS && CSS.escape) return CSS.escape(s);
+            return s.replace(/(["\\])/g, '\\$1');
+        }
+
+        loadConfig();
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+.git
+.claude
+.DS_Store
+**/.DS_Store
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+auto-converter/
+data/
+config.json
+lightroom_uploaded.json
